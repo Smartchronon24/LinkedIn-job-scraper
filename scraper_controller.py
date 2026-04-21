@@ -1,4 +1,7 @@
 import time
+import os
+import re
+from datetime import datetime, timedelta
 from typing import List
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
@@ -17,6 +20,47 @@ class LinkedInScraper:
         self.driver = None
         self.wait = None
         self.current_category = ""
+
+    def _calculate_absolute_time(self, relative_str: str, base_time: datetime) -> datetime:
+        """
+        Converts strings like '17 hours ago', '2 days ago', '3w', '1mo' into absolute datetimes.
+        """
+        if not relative_str or not isinstance(relative_str, str):
+            return base_time
+            
+        r_lower = relative_str.lower().strip()
+        
+        # 1. Handle "Just now"
+        if "now" in r_lower:
+            return base_time
+            
+        # 2. Pattern Matching for "X [unit] ago"
+        match = re.search(r"(\d+)\s+(minute|hour|day|week|month|year)s?\s+ago", r_lower)
+        if match:
+            value = int(match.group(1))
+            unit = match.group(2)
+            
+            if unit == "minute": return base_time - timedelta(minutes=value)
+            if unit == "hour":   return base_time - timedelta(hours=value)
+            if unit == "day":    return base_time - timedelta(days=value)
+            if unit == "week":   return base_time - timedelta(weeks=value)
+            if unit == "month":  return base_time - timedelta(days=value * 30)
+            if unit == "year":   return base_time - timedelta(days=value * 365)
+
+        # 3. Pattern Matching for Abbreviations (e.g. "3h", "2d", "1w", "1mo")
+        match_abbr = re.search(r"(\d+)(m|h|d|w|mo|y)", r_lower)
+        if match_abbr:
+            value = int(match_abbr.group(1))
+            unit = match_abbr.group(2)
+            
+            if unit == "m":  return base_time - timedelta(minutes=value)
+            if unit == "h":  return base_time - timedelta(hours=value)
+            if unit == "d":  return base_time - timedelta(days=value)
+            if unit == "w":  return base_time - timedelta(weeks=value)
+            if unit == "mo": return base_time - timedelta(days=value * 30)
+            if unit == "y":  return base_time - timedelta(days=value * 365)
+            
+        return base_time
 
     def setup_driver(self):
         """Initializes the Selenium Chrome WebDriver."""
@@ -205,6 +249,7 @@ class LinkedInScraper:
         """Extracts data for the currently selected job from the right panel."""
         job = JobListing()
         job.category = self.current_category
+        job.scraped_at = datetime.now().isoformat()
         
         try:
             # 1. Identify the Right Panel Container
@@ -267,45 +312,74 @@ class LinkedInScraper:
                 
             # 5. Extract Location & Time
             try:
+                # 5a. Broad search for "Posted Time"
+                time_keywords = ["ago", "hours", "hrs", "minute", "day", "week", "month", "year", "1h", "2h", "3h"]
+                
+                # Try XPath first (very robust)
+                time_xpath = ".//*[contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'ago') or contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'hour')]"
+                try:
+                    time_els = detail_container.find_elements(By.XPATH, time_xpath)
+                    for te in time_els:
+                        t_text = te.text.strip().replace("·", "")
+                        if any(k in t_text.lower() for k in time_keywords) and len(t_text) < 30:
+                            job.posted_time = t_text
+                            break
+                except: pass
+
+                # 5b. Extract the primary information block
                 meta_selectors = [
                     ".job-details-jobs-unified-top-card__primary-description",
                     ".jobs-unified-top-card__primary-description",
-                    ".job-details-jobs-unified-top-card__company-info"
+                    ".job-details-jobs-unified-top-card__company-info",
+                    ".jobs-unified-top-card__bullet"
                 ]
                 
                 meta_text = ""
                 for ms in meta_selectors:
                     try:
-                        meta_text = detail_container.find_element(By.CSS_SELECTOR, ms).text
+                        meta_el = detail_container.find_element(By.CSS_SELECTOR, ms)
+                        meta_text = meta_el.text.strip()
                         if meta_text: break
                     except: continue
 
                 if meta_text:
                     parts = [p.strip() for p in meta_text.split("·") if p.strip()]
-                    if len(parts) >= 1:
-                        time_index = -1
-                        for idx, p in enumerate(parts):
-                            if any(word in p.lower() for word in ["ago", "hours", "days", "weeks", "month"]):
-                                time_index = idx
+                    
+                    # If XPath failed to find time, scan parts
+                    if not job.posted_time:
+                        for p in parts:
+                            if any(k in p.lower() for k in time_keywords):
+                                job.posted_time = p
                                 break
-                        
-                        if time_index != -1:
-                            job.posted_time = parts[time_index]
-                            if time_index > 0:
-                                prev = parts[time_index - 1]
-                                if job.company and job.company.lower() in prev.lower():
-                                    pass
-                                else:
-                                    job.location = prev
-                        
-                        if not job.location and len(parts) >= 2:
-                            if job.company and job.company.lower() in parts[0].lower():
-                                job.location = parts[1]
-                            else:
-                                job.location = parts[0]
-            except: pass
+                    
+                    # Improved Location Logic
+                    for p in parts:
+                        p_lower = p.lower()
+                        # Ignore parts that are clearly not locations
+                        if any(k in p_lower for k in time_keywords): continue
+                        if job.company and job.company.lower() in p_lower: continue
+                        if "applicant" in p_lower: continue
+                        if "view" in p_lower: continue
+                        if len(p) > 2:
+                            job.location = p
+                            break
                 
-            # 6. Extract Description & Scan Skills
+                # Ensure posted_time is cleaned up
+                if job.posted_time:
+                    job.posted_time = job.posted_time.replace("·", "").strip()
+                    # Calculate real-time absolute date
+                    try:
+                        base_dt = datetime.fromisoformat(job.scraped_at)
+                        absolute_dt = self._calculate_absolute_time(job.posted_time, base_dt)
+                        job.posted_at = absolute_dt.strftime("%Y-%m-%d %H:%M")
+                    except Exception as e:
+                        print(f"DEBUG: Error calculating absolute time for '{job.posted_time}': {e}")
+                
+            except Exception as e:
+                print(f"DEBUG: Error in extraction step 5: {e}")
+
+                
+            # 6. Extract Description
             desc_selectors = [
                 (By.CSS_SELECTOR, "#job-details"),
                 (By.CSS_SELECTOR, ".jobs-description__content"),

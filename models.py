@@ -5,9 +5,11 @@ class JobListing:
     title: str = ""
     company: str = ""
     location: str = ""
-    posted_time: str = ""
+    posted_time: str = ""    # Raw string from LinkedIn (e.g. "17 hours ago")
     description: str = ""
-    category: str = ""   # The role searched (e.g. Data Engineer)
+    category: str = ""       # The role searched (e.g. Data Engineer)
+    scraped_at: str = ""     # ISO timestamp of when the job was scraped
+    posted_at: str = ""      # Calculated absolute timestamp (Silver layer)
     
     def clean(self):
         """Basic text normalization."""
@@ -16,6 +18,8 @@ class JobListing:
         self.location = self.location.strip()
         self.posted_time = self.posted_time.strip()
         self.category = self.category.strip()
+        self.scraped_at = self.scraped_at.strip()
+        self.posted_at = self.posted_at.strip()
         
         # Simple whitespace replacement for description
         if self.description:

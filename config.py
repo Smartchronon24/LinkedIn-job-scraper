@@ -28,7 +28,7 @@ CHROME_PROFILE_DIR = "Default"
 # ---------------------------------------------------------------------------
 # Add multiple roles here to scrape them all in one go
 SEARCH_QUERIES = ["Data Engineer"] #, "Python Developer", "Machine Learning", "DevOps Engineer"]
-MAX_JOBS       = 1                 # Per category
+MAX_JOBS       = 5                 # Per category
 
 # ---------------------------------------------------------------------------
 # Filter Parameters
@@ -43,6 +43,13 @@ EXPERIENCE_FILTER = "1,2,3,4,5,6"
 OUTPUT_DIR          = os.path.dirname(os.path.abspath(__file__))
 OUTPUT_FILE         = os.path.join(OUTPUT_DIR, "linkedin_jobs.csv")
 APPEND_TO_EXISTING  = False        # Set to True to keep old results in the CSV
+
+# Standard format for both Bronze and Silver
+CSV_HEADERS = [
+    "Category", "Title", "Company", "Location", 
+    "Posted Time", "Scraped At", "Posted At", 
+    "Description"
+]
 
 # ---------------------------------------------------------------------------
 # Timing (seconds) — tweak if LinkedIn loads slowly on your connection

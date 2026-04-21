@@ -22,7 +22,7 @@ class JobView:
         # Ensure directory exists
         os.makedirs(os.path.dirname(filepath), exist_ok=True)
         
-        fieldnames = ["Category", "Title", "Company", "Location", "Posted Time", "Description"]
+        fieldnames = config.CSV_HEADERS
         
         # Determine mode: write header only if not appending or if file is new
         file_exists = os.path.isfile(filepath)
@@ -42,6 +42,8 @@ class JobView:
                     "Company": job.company,
                     "Location": job.location,
                     "Posted Time": job.posted_time,
+                    "Scraped At": job.scraped_at,
+                    "Posted At": job.posted_at,
                     "Description": job.description
                 })
                 
