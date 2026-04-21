@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+env/
+venv/
+ENV/
+
+# Selenium / Chrome logic
+chrome_data/
+*.log
+
+# Project specific
+output_jobs.csv
+linkedin_jobs.csv
+quotes.csv
+
+# IDEs
+.vscode/
+.idea/
+*.swp
