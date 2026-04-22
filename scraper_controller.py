@@ -7,7 +7,6 @@ from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
-from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
@@ -314,9 +313,8 @@ class LinkedInScraper:
             try:
                 # 5a. Broad search for "Posted Time"
                 time_keywords = ["ago", "hours", "hrs", "minute", "day", "week", "month", "year", "1h", "2h", "3h"]
-                
-                # Try XPath first (very robust)
                 time_xpath = ".//*[contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'ago') or contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'hour')]"
+                
                 try:
                     time_els = detail_container.find_elements(By.XPATH, time_xpath)
                     for te in time_els:
@@ -326,57 +324,17 @@ class LinkedInScraper:
                             break
                 except: pass
 
-                # 5b. Extract the primary information block
-                meta_selectors = [
-                    ".job-details-jobs-unified-top-card__primary-description",
-                    ".jobs-unified-top-card__primary-description",
-                    ".job-details-jobs-unified-top-card__company-info",
-                    ".jobs-unified-top-card__bullet"
-                ]
-                
-                meta_text = ""
-                for ms in meta_selectors:
-                    try:
-                        meta_el = detail_container.find_element(By.CSS_SELECTOR, ms)
-                        meta_text = meta_el.text.strip()
-                        if meta_text: break
-                    except: continue
-
-                if meta_text:
-                    parts = [p.strip() for p in meta_text.split("·") if p.strip()]
-                    
-                    # If XPath failed to find time, scan parts
-                    if not job.posted_time:
-                        for p in parts:
-                            if any(k in p.lower() for k in time_keywords):
-                                job.posted_time = p
-                                break
-                    
-                    # Improved Location Logic
-                    for p in parts:
-                        p_lower = p.lower()
-                        # Ignore parts that are clearly not locations
-                        if any(k in p_lower for k in time_keywords): continue
-                        if job.company and job.company.lower() in p_lower: continue
-                        if "applicant" in p_lower: continue
-                        if "view" in p_lower: continue
-                        if len(p) > 2:
-                            job.location = p
-                            break
-                
-                # Ensure posted_time is cleaned up
+                # 5b. Robust absolute date calculation
                 if job.posted_time:
-                    job.posted_time = job.posted_time.replace("·", "").strip()
-                    # Calculate real-time absolute date
+                    job.posted_time = job.posted_time.replace("·", "").replace("•", "").strip()
                     try:
                         base_dt = datetime.fromisoformat(job.scraped_at)
                         absolute_dt = self._calculate_absolute_time(job.posted_time, base_dt)
                         job.posted_at = absolute_dt.strftime("%Y-%m-%d %H:%M")
-                    except Exception as e:
-                        print(f"DEBUG: Error calculating absolute time for '{job.posted_time}': {e}")
+                    except: pass
                 
-            except Exception as e:
-                print(f"DEBUG: Error in extraction step 5: {e}")
+            except Exception:
+                pass
 
                 
             # 6. Extract Description

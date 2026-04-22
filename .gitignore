@@ -7,14 +7,19 @@ env/
 venv/
 ENV/
 
+
 # Selenium / Chrome logic
 chrome_data/
 *.log
+
 
 # Project specific
 output_jobs.csv
 linkedin_jobs.csv
 quotes.csv
+scratchpad.txt
+scratch/
+
 
 # IDEs
 .vscode/

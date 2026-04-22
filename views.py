@@ -11,13 +11,13 @@ class JobView:
         print(f"[{index}] {job.title} at {job.company} ({job.location}) - {job.posted_time}")
 
     @staticmethod
-    def save_to_csv(jobs: List[JobListing], filepath: str):
-        """Exports the list of jobs to a CSV file."""
-        if not jobs:
-            print("No jobs to save.")
+    def save_to_csv(enriched_jobs: List[dict], filepath: str):
+        """Exports the list of enriched job data to a CSV file."""
+        if not enriched_jobs:
+            print("No data to save.")
             return
             
-        print(f"\nSaving {len(jobs)} jobs to: {filepath}...")
+        print(f"\nSaving {len(enriched_jobs)} enriched jobs to: {filepath}...")
         
         # Ensure directory exists
         os.makedirs(os.path.dirname(filepath), exist_ok=True)
@@ -31,20 +31,31 @@ class JobView:
         with open(filepath, mode=mode, newline="", encoding="utf-8") as f:
             writer = csv.DictWriter(f, fieldnames=fieldnames)
             
-            # Write header if we are starting a new file
             if mode == "w":
                 writer.writeheader()
             
-            for job in jobs:
+            for item in enriched_jobs:
+                # Map JSON/Metadata fields to CSV columns
+                meta = item.get("job_metadata", {})
+                exp  = item.get("experience", {})
+                coding = item.get("coding_skills", {})
+                
+                # Format lists as semicolon-separated strings
                 writer.writerow({
-                    "Category": job.category,
-                    "Title": job.title,
-                    "Company": job.company,
-                    "Location": job.location,
-                    "Posted Time": job.posted_time,
-                    "Scraped At": job.scraped_at,
-                    "Posted At": job.posted_at,
-                    "Description": job.description
+                    "Category": meta.get("category"),
+                    "Title": meta.get("title"),
+                    "Company": meta.get("company"),
+                    "Location": meta.get("location"),
+                    "Primary Skills": "; ".join(item.get("primary_skills", [])),
+                    "Secondary Skills": "; ".join(item.get("secondary_skills", [])),
+                    "Languages": "; ".join(coding.get("languages", [])),
+                    "Min Exp": exp.get("range", [None])[0] if isinstance(exp.get("range"), list) else None,
+                    "Max Exp": exp.get("range", [None])[-1] if isinstance(exp.get("range"), list) and len(exp.get("range")) > 1 else (exp.get("range", [None])[0] if isinstance(exp.get("range"), list) else None),
+                    "Responsibilities": " | ".join(item.get("responsibilities", [])),
+                    "Experience Summary": exp.get("description"),
+                    "Posted At": meta.get("posted_at"),
+                    "Scraped At": meta.get("scraped_at"),
+                    "Description": meta.get("description")
                 })
                 
         print("Save complete!")
