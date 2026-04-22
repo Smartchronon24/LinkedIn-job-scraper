@@ -28,7 +28,7 @@ CHROME_PROFILE_DIR = "Default"
 # ---------------------------------------------------------------------------
 # Add multiple roles here to scrape them all in one go
 SEARCH_QUERIES = ["Data Engineer"] 
-MAX_JOBS       = 5                 # Per category
+MAX_JOBS       = 2                 # Per category
 
 # ---------------------------------------------------------------------------
 # Filter Parameters
@@ -47,8 +47,8 @@ APPEND_TO_EXISTING  = False        # Set to True to keep old results in the CSV
 # Standard format for both Bronze and Silver
 CSV_HEADERS = [
     "Category", "Title", "Company", "Location", 
-    "Primary Skills", "Secondary Skills", "Languages",
-    "Min Exp", "Max Exp", "Responsibilities", "Experience Summary",
+    "Primary Skills", "Secondary Skills", "Soft Skills", "Languages",
+    "Apply Link", "Min Exp", "Max Exp", "Responsibilities", "Experience Summary",
     "Posted At", "Scraped At", "Description"
 ]
 

@@ -43,12 +43,17 @@ def main():
             
             for idx, job in enumerate(all_jobs, 1):
                 print(f"[{idx}/{len(all_jobs)}] Processing: {job.title} at {job.company}...")
-                insights = processor.process_description(job.description)
+                
+                # Bundle description and apply link for the LLM
+                content_to_process = f"Apply Link: {job.apply_link}\n\nJob Description:\n{job.description}"
+                insights = processor.process_description(content_to_process)
                 
                 if not insights:
                     insights = {
-                        "primary_skills": [], "secondary_skills": [], 
-                        "coding_skills": {"languages": []},
+                        "skills": {
+                            "primary_skills": [], "secondary_skills": [], 
+                            "soft_skills": [], "coding_skills": {"languages": []}
+                        },
                         "experience": {"range": [None], "description": ""},
                         "responsibilities": []
                     }
@@ -59,6 +64,7 @@ def main():
                     "title": job.title,
                     "company": job.company,
                     "location": job.location,
+                    "apply_link": job.apply_link,
                     "posted_at": job.posted_at,
                     "scraped_at": job.scraped_at,
                     "description": job.description

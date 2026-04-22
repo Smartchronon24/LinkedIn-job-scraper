@@ -336,7 +336,6 @@ class LinkedInScraper:
             except Exception:
                 pass
 
-                
             # 6. Extract Description
             desc_selectors = [
                 (By.CSS_SELECTOR, "#job-details"),
@@ -349,7 +348,46 @@ class LinkedInScraper:
                     if text:
                         job.description = text
                         break
-                except: continue
+                except:
+                    continue
+                
+            # 7. Extract Apply Link
+            try:
+                # First, get the common LinkedIn Job URL from the browser
+                current_url = self.driver.current_url
+                if "/jobs/view/" in current_url:
+                    # Clean the URL to remove tracking parameters
+                    clean_url = current_url.split("?")[0]
+                    job.apply_link = clean_url
+
+                # Check the apply button text/behavior
+                apply_selectors = [
+                    ".jobs-apply-button--top-card button",
+                    ".jobs-apply-button",
+                    "button[aria-label*='Apply']",
+                    "a[aria-label*='Apply']"
+                ]
+                
+                for sel in apply_selectors:
+                    try:
+                        btn = detail_container.find_element(By.CSS_SELECTOR, sel)
+                        btn_text = btn.text.strip().lower()
+                        
+                        if "easy apply" in btn_text:
+                            # Already handled by current_url above
+                            break
+                        elif "apply" in btn_text:
+                            # Check if it's a direct link
+                            href = btn.get_attribute("href")
+                            if href:
+                                job.apply_link = href
+                                break
+                            # Some external buttons are just buttons that redirect
+                            # We keep the LinkedIn link as a fallback
+                            break
+                    except: continue
+            except Exception:
+                pass
 
             job.clean()
             return job

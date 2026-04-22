@@ -38,7 +38,8 @@ class JobView:
                 # Map JSON/Metadata fields to CSV columns
                 meta = item.get("job_metadata", {})
                 exp  = item.get("experience", {})
-                coding = item.get("coding_skills", {})
+                skills = item.get("skills", {})
+                coding = skills.get("coding_skills", {})
                 
                 # Format lists as semicolon-separated strings
                 writer.writerow({
@@ -46,9 +47,11 @@ class JobView:
                     "Title": meta.get("title"),
                     "Company": meta.get("company"),
                     "Location": meta.get("location"),
-                    "Primary Skills": "; ".join(item.get("primary_skills", [])),
-                    "Secondary Skills": "; ".join(item.get("secondary_skills", [])),
+                    "Primary Skills": "; ".join(skills.get("primary_skills", [])),
+                    "Secondary Skills": "; ".join(skills.get("secondary_skills", [])),
+                    "Soft Skills": "; ".join(skills.get("soft_skills", [])),
                     "Languages": "; ".join(coding.get("languages", [])),
+                    "Apply Link": meta.get("apply_link"),
                     "Min Exp": exp.get("range", [None])[0] if isinstance(exp.get("range"), list) else None,
                     "Max Exp": exp.get("range", [None])[-1] if isinstance(exp.get("range"), list) and len(exp.get("range")) > 1 else (exp.get("range", [None])[0] if isinstance(exp.get("range"), list) else None),
                     "Responsibilities": " | ".join(item.get("responsibilities", [])),

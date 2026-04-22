@@ -10,7 +10,7 @@ class OllamaProcessor:
         self.system_prompt = self._load_system_prompt()
 
     def _load_system_prompt(self):
-        """Builds the system prompt based on the full rules in scratchpad.txt."""
+        """Builds the system prompt based on the granular skills re-engineering."""
         return """
 You are a strict information extraction system.
 Extract structured data from the job description and return ONLY valid JSON.
@@ -18,46 +18,51 @@ DO NOT include explanations, comments, or extra text.
 
 Output Schema:
 {
-  "primary_skills": [],
-  "secondary_skills": [],
-  "coding_skills": {
-    "type": "any_one | all_required | unspecified",
-    "languages": []
+  "skills": {
+    "primary_skills": [],   // MANDATORY technical skills + all coding languages
+    "secondary_skills": [], // PREFERRED/DESIRED technical skills only
+    "soft_skills": [],      // Soft skills (e.g., communication, problem solving)
+    "coding_skills": {
+      "type": "any_one | all_required | unspecified",
+      "languages": []       // Split by slashes: C/C++ -> ["C", "C++"]
+    }
   },
   "experience": {
     "description": "string",
     "range": [min, max] or [exact] or null
   },
-  "responsibilities": []
+  "responsibilities": [],
+  "apply_link": "string"
 }
 
 Rules:
 1. PRIMARY SKILLS:
-- Include ONLY technical, domain-relevant skills (e.g. Data Structures, Algorithms, OOP)
-- EXCLUDE vague terms like "Design", "Technology", "Systems"
+- Extract technical skills listed under 'Requirements', 'Qualifications', or 'What you will need'.
+- MUST include all languages found in 'coding_skills'.
+- EXCLUDE vague terms (e.g., "Technology", "Systems").
 
 2. SECONDARY SKILLS:
-- Include soft skills only (e.g. communication, problem solving, teamwork)
+- Extract technical skills listed as 'Preferred', 'Plus', 'Nice to have', or 'Desired'.
+- Do NOT include soft skills here.
 
-3. CODING SKILLS:
-- Extract programming languages separately. 
-- IMPORTANT: Split combined strings! "C/C++/Java" must be ["C", "C++", "Java"]
-- If job says "any one of X/Y/Z": type = "any_one", languages = ["X", "Y", "Z"]
-- If job requires all: type = "all_required"
-- If unclear: type = "unspecified"
+3. SOFT SKILLS:
+- Extract interpersonal and character-based skills (e.g., "Communication", "Teamwork", "Problem Solving").
+- Keep items concise but descriptive (e.g., "Exceptional communication").
 
-4. EXPERIENCE:
-- Keep description as a clean readable sentence without unrelated text.
-- RANGE: Extract NUMERIC values (e.g. [4, 7] for "4-7 years"). 
-- Freshers/Interns/No experience needed: [0]
-- DONOT return [x, null] or [null, x]. If one number, use [x] or [x, x].
-- If not present: null
+4. CODING SKILLS:
+- Extract programming languages separately.
+- Split combined strings: "C/C++/Java" must be ["C", "C++", "Java"].
 
-5. RESPONSIBILITIES:
-- Extract actual duties. Keep each item concise.
+5. EXPERIENCE:
+- Clean readable sentence for the description.
+- RANGE: [4, 7] for "4-7 years". Freshers/Interns = [0].
+more examples: "4-7" or "4 to 7" years of experience should be represented as: [4, 7]
+if "no work experience needed" or "freshers" or "Intern" or related values, then: [0]
+DONOT by any chance return value like [x, null] or [null, x] where x stands for any positive numeric value.  
 
 6. GENERAL:
-- Remove duplicates, normalize capitalization, keep output clean and minimal.
+- Remove duplicates across all categories.
+- Normalize capitalization (e.g., "python" -> "Python").
 """
 
     def process_description(self, description):

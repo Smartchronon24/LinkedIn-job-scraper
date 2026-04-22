@@ -10,6 +10,7 @@ class JobListing:
     category: str = ""       # The role searched (e.g. Data Engineer)
     scraped_at: str = ""     # ISO timestamp of when the job was scraped
     posted_at: str = ""      # Calculated absolute timestamp (Silver layer)
+    apply_link: str = ""     # URL for the job application
     
     def clean(self):
         """Basic text normalization."""
@@ -20,6 +21,7 @@ class JobListing:
         self.category = self.category.strip()
         self.scraped_at = self.scraped_at.strip()
         self.posted_at = self.posted_at.strip()
+        self.apply_link = self.apply_link.strip()
         
         # Simple whitespace replacement for description
         if self.description:
