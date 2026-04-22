@@ -32,7 +32,13 @@ Output Schema:
     "range": [min, max] or [exact] or null
   },
   "responsibilities": [],
-  "apply_link": "string"
+  "apply_link": "string",
+  "location_insights": {
+    "city": "string",
+    "state": "string",
+    "country": "string",
+    "work_model": "Remote | Hybrid | On-site | Unknown"
+  }
 }
 
 Rules:
@@ -63,6 +69,10 @@ DONOT by any chance return value like [x, null] or [null, x] where x stands for 
 6. GENERAL:
 - Remove duplicates across all categories.
 - Normalize capitalization (e.g., "python" -> "Python").
+
+7. LOCATION:
+- Extract City, State, Country from the context provided (use Scraped Location as a hint).
+- Work model: Identify if the role is Remote, Hybrid, or On-site. Prioritize the description over the location hint if it says "Remote". Fallback to 'Unknown'.
 """
 
     def process_description(self, description):
@@ -77,12 +87,15 @@ DONOT by any chance return value like [x, null] or [null, x] where x stands for 
         }
 
         try:
-            response = requests.post(OLLAMA_URL, json=payload, timeout=60)
+            response = requests.post(OLLAMA_URL, json=payload, timeout=300)
             response.raise_for_status()
             
             result = response.json()
             raw_text = result.get("response", "")
             
+            if not raw_text.strip():
+                return None
+                
             return self._parse_json(raw_text)
         except Exception as e:
             print(f"ERROR: Ollama processing failed: {e}")
@@ -101,7 +114,6 @@ DONOT by any chance return value like [x, null] or [null, x] where x stands for 
                     return json.loads(match.group(1))
             except:
                 pass
-            print(f"DEBUG: Failed to parse LLM JSON: {text[:100]}...")
             return None
 
 if __name__ == "__main__":

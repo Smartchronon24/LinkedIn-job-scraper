@@ -40,18 +40,28 @@ class JobView:
                 exp  = item.get("experience", {})
                 skills = item.get("skills", {})
                 coding = skills.get("coding_skills", {})
+                # Build formatted location string from LLM insights
+                loc_data = item.get("location_insights", {})
+                city = loc_data.get("city", "")
+                state = loc_data.get("state", "")
+                mode = loc_data.get("work_model", "")
+                
+                loc_parts = [p for p in [city, state] if p]
+                ai_loc = ", ".join(loc_parts)
+                if mode and mode != "Unknown":
+                    ai_loc = f"{ai_loc} ({mode})" if ai_loc else mode
                 
                 # Format lists as semicolon-separated strings
                 writer.writerow({
                     "Category": meta.get("category"),
                     "Title": meta.get("title"),
                     "Company": meta.get("company"),
-                    "Location": meta.get("location"),
+                    "Location": ai_loc if ai_loc else meta.get("location"),
                     "Primary Skills": "; ".join(skills.get("primary_skills", [])),
                     "Secondary Skills": "; ".join(skills.get("secondary_skills", [])),
                     "Soft Skills": "; ".join(skills.get("soft_skills", [])),
                     "Languages": "; ".join(coding.get("languages", [])),
-                    "Apply Link": meta.get("apply_link"),
+                    "Apply Link": item.get("apply_link"),
                     "Min Exp": exp.get("range", [None])[0] if isinstance(exp.get("range"), list) else None,
                     "Max Exp": exp.get("range", [None])[-1] if isinstance(exp.get("range"), list) and len(exp.get("range")) > 1 else (exp.get("range", [None])[0] if isinstance(exp.get("range"), list) else None),
                     "Responsibilities": " | ".join(item.get("responsibilities", [])),

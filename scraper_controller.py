@@ -133,7 +133,7 @@ class LinkedInScraper:
         except Exception as e:
             print(f"Error: Results page did not load for {query}")
 
-    def extract_job_list(self, max_jobs: int) -> List[JobListing]:
+    def extract_job_list(self, max_jobs: int, job_queue=None) -> List[JobListing]:
         """Iterates through job cards on the left panel."""
         print("Extracting job list...")
         jobs = []
@@ -193,51 +193,55 @@ class LinkedInScraper:
                 self.driver.execute_script("document.querySelector('#msg-overlay')?.remove();")
             except: pass
 
-            max_search = min(len(job_cards), max_jobs * 2) # Look at more cards to account for duplicates
-            print(f"Found {len(job_cards)} cards on page, extracting up to {max_jobs} unique jobs...")
-            
             processed_id_set = set()
-            
-            for i in range(max_search):
-                if len(jobs) >= max_jobs:
-                    break
-                    
-                # Refetch cards
+            current_index = 0
+            while len(jobs) < max_jobs:
+                # 1. Refetch cards to account for dynamic loading/infinite scroll
                 current_cards = self.driver.find_elements(By.XPATH, selector)
-                if i >= len(current_cards): break
-                card = current_cards[i]
+                
+                # If we've exhausted all visible cards, we can't do more
+                if current_index >= len(current_cards):
+                    print(f"Reached end of visible cards ({len(current_cards)} found).")
+                    break
+                
+                card = current_cards[current_index]
+                current_index += 1 # Advance for next iteration
                 
                 try:
                     # Scroll card into view
                     self.driver.execute_script("arguments[0].scrollIntoView({behavior: 'instant', block: 'center'});", card)
-                    time.sleep(1.5)
+                    time.sleep(1.0)
                     
-                    # CLICK using JavaScript (much more reliable for 'not interactable' errors)
-                    # We try to find a link inside, otherwise click the card itself
+                    # CLICK using JavaScript
                     try:
                         link = card.find_element(By.CSS_SELECTOR, "a.job-card-list__title, a.job-card-container__link")
                         self.driver.execute_script("arguments[0].click();", link)
                     except:
                         self.driver.execute_script("arguments[0].click();", card)
                     
-                    # Wait for right panel to change/load content
+                    # Wait for right panel content to update
                     time.sleep(config.CARD_DELAY + 1)
                     
                     # Extract detailed data from the right panel
                     job_data = self.extract_job_details()
                     if job_data and job_data.title:
-                        job_hash = f"{job_data.title}::{job_data.company}"
+                        # Uniqueness check based on Title + Company
+                        job_hash = f"{job_data.title.lower()}::{job_data.company.lower()}"
                         if job_hash not in processed_id_set:
                             processed_id_set.add(job_hash)
                             jobs.append(job_data)
                             print(f"[{len(jobs)}/{max_jobs}] Scraped: {job_data.title} at {job_data.company}")
+                            
+                            if job_queue:
+                                job_queue.put(job_data)
                         else:
-                            print(f"Skipping duplicate detection on index {i}: {job_data.title} at {job_data.company}")
+                            # Standard LinkedIn behavior: it often repeats cards
+                            pass 
                     else:
-                        print(f"Attempt {i+1}: Could not extract details (Content didn't load or selectors failed).")
+                        print(f"Card {current_index}: Content didn't load, skipping.")
                         
                 except Exception as e:
-                    print(f"Failed to process card {i+1}: {e}")
+                    print(f"Error processing card {current_index}: {e}")
                     
         except Exception as e:
             print(f"Detailed error in extract_job_list: {e}")
@@ -353,12 +357,15 @@ class LinkedInScraper:
                 
             # 7. Extract Apply Link
             try:
-                # First, get the common LinkedIn Job URL from the browser
+                # 7a. Get the LinkedIn Job URL (fallback/primary)
                 current_url = self.driver.current_url
-                if "/jobs/view/" in current_url:
-                    # Clean the URL to remove tracking parameters
-                    clean_url = current_url.split("?")[0]
-                    job.apply_link = clean_url
+                job_id_match = re.search(r"currentJobId=(\d+)", current_url)
+                
+                if job_id_match:
+                    job_id = job_id_match.group(1)
+                    job.apply_link = f"https://www.linkedin.com/jobs/view/{job_id}/"
+                elif "/jobs/view/" in current_url:
+                    job.apply_link = current_url.split("?")[0]
 
                 # Check the apply button text/behavior
                 apply_selectors = [
