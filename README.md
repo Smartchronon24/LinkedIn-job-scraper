@@ -1,13 +1,5 @@
 # LinkedIn Job Scraper — Comprehensive Technical Explanation
 
-## 📌 First: A Note on BS4 (BeautifulSoup)
-> [!IMPORTANT]
-> **BeautifulSoup (BS4) is NOT used in this project.** It is a common HTML parsing library, but your scraper uses **Selenium exclusively** for all data extraction. The key difference is:
-> - **BS4**: Downloads raw HTML as a string and parses it statically. It cannot interact with the page. Good for simple, static pages.
-> - **Selenium**: Controls a real Chrome browser. It can click, scroll, wait for JavaScript to execute, and read the DOM in its **live rendered state** — which is exactly what LinkedIn needs.
-
----
-
 ## 🏗️ Overall Architecture
 
 The project is structured as a clean, layered pipeline:
