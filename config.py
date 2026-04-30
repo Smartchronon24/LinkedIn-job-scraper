@@ -27,15 +27,15 @@ CHROME_PROFILE_DIR = "Default"
 # Search Parameters (Batch Mode)
 # ---------------------------------------------------------------------------
 # Add multiple roles here to scrape them all in one go
-SEARCH_QUERIES = ["Data Engineer"] 
-MAX_JOBS       = 3                 # Per category
+SEARCH_QUERIES = ["Data Engineer/Scientist", "Python Developer", "AI Developer"] 
+MAX_JOBS       = 5                 # Per category
 
 # ---------------------------------------------------------------------------
 # Filter Parameters
 # ---------------------------------------------------------------------------
 # Values: 1=Intern, 2=Entry, 3=Associate, 4=Mid-Sr, 5=Director, 6=Exec
 # Example: "2,3" for Entry and Associate level. Leave as "" for no filter.
-EXPERIENCE_FILTER = "1,2,3,4,5,6" 
+EXPERIENCE_FILTER = "2" #,1,3,4,5,6" 
 
 # ---------------------------------------------------------------------------
 # Output
@@ -64,6 +64,6 @@ CARD_DELAY           = 1.5  # Pause after clicking each job card
 # ---------------------------------------------------------------------------
 OLLAMA_MODEL         = "llama3"
 OLLAMA_URL           = "http://localhost:11434/api/generate"
-OLLAMA_INSIGHTS_FILE = "job_insights.json"
+OLLAMA_INSIGHTS_FILE = "Webscraping/job_insights.json"
 OLLAMA_ENABLED       = True        # Set to False to skip LLM processing
 OLLAMA_MAX_WORKERS   = 1           # Number of parallel AI threads (1 is best for local)

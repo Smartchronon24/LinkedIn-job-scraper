@@ -31,7 +31,6 @@ def llm_worker(job_queue, final_data, data_lock):
 Company: {job.company}
 Scraped Location: {job.location}
 Apply Link: {job.apply_link}
-
 Job Description:
 {job.description}"""
                 insights = processor.process_description(content_to_process)
