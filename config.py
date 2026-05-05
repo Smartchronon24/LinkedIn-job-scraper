@@ -27,7 +27,7 @@ CHROME_PROFILE_DIR = "Default"
 # Search Parameters (Batch Mode)
 # ---------------------------------------------------------------------------
 # Add multiple roles here to scrape them all in one go
-SEARCH_QUERIES = ["Data Engineer/Scientist", "Python Developer", "AI Developer"] 
+SEARCH_QUERIES = ["Data Engineer/Scientist", "Python Developer", "AI Developer", "DevOps", "Android app Development", "Software Developer"] 
 MAX_JOBS       = 5                 # Per category
 
 # ---------------------------------------------------------------------------

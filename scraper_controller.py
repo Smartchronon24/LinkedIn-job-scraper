@@ -19,6 +19,7 @@ class LinkedInScraper:
         self.driver = None
         self.wait = None
         self.current_category = ""
+        self.global_processed_ids = set() # Persistent across multiple search queries
 
     def _calculate_absolute_time(self, relative_str: str, base_time: datetime) -> datetime:
         """
@@ -193,7 +194,6 @@ class LinkedInScraper:
                 self.driver.execute_script("document.querySelector('#msg-overlay')?.remove();")
             except: pass
 
-            processed_id_set = set()
             current_index = 0
             while len(jobs) < max_jobs:
                 # 1. Refetch cards to account for dynamic loading/infinite scroll
@@ -225,17 +225,19 @@ class LinkedInScraper:
                     # Extract detailed data from the right panel
                     job_data = self.extract_job_details()
                     if job_data and job_data.title:
-                        # Uniqueness check based on Title + Company
-                        job_hash = f"{job_data.title.lower()}::{job_data.company.lower()}"
-                        if job_hash not in processed_id_set:
-                            processed_id_set.add(job_hash)
+                        # Uniqueness check: Primary check = Apply Link (Job ID), Fallback = Title + Company
+                        job_key = job_data.apply_link if job_data.apply_link else f"{job_data.title.lower()}::{job_data.company.lower()}"
+                        
+                        if job_key not in self.global_processed_ids:
+                            self.global_processed_ids.add(job_key)
                             jobs.append(job_data)
                             print(f"[{len(jobs)}/{max_jobs}] Scraped: {job_data.title} at {job_data.company}")
                             
                             if job_queue:
                                 job_queue.put(job_data)
                         else:
-                            # Standard LinkedIn behavior: it often repeats cards
+                            # Standard LinkedIn behavior: it often repeats cards across searches
+                            print(f"Skipping duplicate job: {job_data.title} at {job_data.company}")
                             pass 
                     else:
                         print(f"Card {current_index}: Content didn't load, skipping.")
